@@ -3,6 +3,11 @@ import json
 import os
 import urllib.error
 import urllib.request
+import urllib.parse
+import uuid
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 CONFIG = {
     'openai': ('OPENAI_API_KEY', 'https://api.openai.com/v1/chat/completions'),
@@ -13,15 +18,41 @@ CONFIG = {
 
 
 def post_json(url, headers, payload):
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json', **headers})
-    try:
-        with urllib.request.urlopen(req, timeout=60) as response:
-            return json.load(response)
-    except urllib.error.HTTPError as exc:
-        # Do not print response bodies: they may contain account or request data.
-        raise RuntimeError(f'Provider trả HTTP {exc.code}; kiểm tra model, key và quota.') from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f'Không kết nối được provider: {exc.reason}') from exc
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={
+        'Content-Type': 'application/json',
+        'User-Agent': 'StatusInvestigationLab/1.0',
+        **headers,
+    })
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            # Retry chỉ cho 429 tạm thời, tối đa 4 attempts. Không in response body.
+            error_code = None
+            try:
+                error_code = json.load(exc).get('error', {}).get('code')
+            except (ValueError, AttributeError):
+                pass
+            delay = 15 * (2 ** attempt)
+            retry_after = exc.headers.get('Retry-After') if exc.headers else None
+            if retry_after:
+                try:
+                    delay = max(0, float(retry_after))
+                except ValueError:
+                    try:
+                        delay = max(0, (parsedate_to_datetime(retry_after) -
+                                        datetime.now(timezone.utc)).total_seconds())
+                    except (ValueError, TypeError, OverflowError):
+                        pass
+            if (exc.code == 429 and attempt < 3 and delay <= 60
+                    and error_code not in ('insufficient_quota', 'usage_limit_exceeded',
+                                           'organization_usage_limit_exceeded')):
+                time.sleep(delay)
+                continue
+            raise RuntimeError(f'Provider trả HTTP {exc.code}; kiểm tra model, key và quota.') from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f'Không kết nối được provider: {exc.reason}') from exc
 
 
 class Provider:
@@ -37,6 +68,12 @@ class Provider:
             raise ValueError('Cần đặt MODEL là model có hỗ trợ tool calling.')
         self.name, self.model = name, model
         key_name, self.url = CONFIG[name]
+        # Dùng cùng adapter cho dịch vụ tương thích OpenAI, ví dụ OpenCode Go.
+        # OPENAI_BASE_URL là URL gốc (thường kết thúc bằng /v1).
+        base_url = os.getenv('OPENAI_BASE_URL', '').strip().rstrip('/')
+        if name == 'openai' and base_url:
+            self.url = base_url + '/chat/completions'
+        self.session_id = uuid.uuid4().hex
         self.key = os.getenv(key_name)
         if not self.key:
             raise ValueError(f'Thiếu {key_name}; xem README.md.')
@@ -45,9 +82,17 @@ class Provider:
         if self.name == 'anthropic':
             return self._anthropic(messages, schemas)
         payload = {'model': self.model, 'messages': messages}
+        if self.name == 'openai' and self.model == 'gpt-6-luna':
+            payload['reasoning_effort'] = 'none'
+        if self.name == 'openrouter' and self.model == 'openai/gpt-6-luna':
+            payload['reasoning'] = {'effort': 'none'}
         if schemas:
             payload['tools'] = schemas
-        data = post_json(self.url, {'Authorization': f'Bearer {self.key}'}, payload)
+        headers = {'Authorization': f'Bearer {self.key}'}
+        # OpenCode Go yêu cầu một session ổn định cho mọi lượt của cuộc hội thoại.
+        if urllib.parse.urlsplit(self.url).hostname == 'opencode.ai':
+            headers['x-opencode-session'] = self.session_id
+        data = post_json(self.url, headers, payload)
         choice = data['choices'][0]
         message = choice['message']
         calls = [{'id': c['id'], 'name': c['function']['name'], 'arguments': c['function']['arguments']} for c in message.get('tool_calls', [])]

@@ -1,0 +1,80 @@
+{
+  "recorded_at_utc": "2026-11-11T12:09:28.410920+00:00",
+  "provider": "openrouter",
+  "model": "openai/gpt-6-luna",
+  "judge_provider": "openrouter",
+  "judge_model": "openai/gpt-6-luna",
+  "api_endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "reasoning": {
+    "effort": "none"
+  },
+  "core_max_steps": 8,
+  "bonus_max_steps": 16,
+  "sha256": {
+    "baselines/agent_before.py": "82a03567f77762351546718e818b131a40edf27395a432880c59683400e0497e",
+    "agent.py": "0aa6f95a4be98fe2724fa51029ce915792b1a2bb5b68e63efe346cd734408379",
+    "providers.py": "b4d5b3fd63e648496c6d228a6cf97096887f9d247bc843c26c971c6afa7f5ee5",
+    "evals/cases.json": "bca3ea31cb42dae5a952a7522bf87242b25117e565d1a5c3c636c18635abf50b",
+    "evals/scenarios.py": "193c39f8f82cdaa3c4f7b68715ddaf94cdae1f4f760bcc893ccaa42e84436a1f",
+    "evals/grading.py": "e64f759f933830800788f6d315768a1152214faefb947585a1ff9148e7761f25",
+    "bonus/cases.json": "393b97bf9ebb975ce1ae3505cc25eb37fc2f5607aa443803276d039b87e64a22"
+  },
+  "finalized_at_utc": "2026-11-11T15:31:37.517280+00:00",
+  "reports": {
+    "eval_before.json": {
+      "sha256": "71467c275444185ef47afadb4c4a6b8027b67a7e24650277e6239cf628ce202e",
+      "config": {
+        "provider": "openrouter",
+        "model": "openai/gpt-6-luna",
+        "judge_provider": "openrouter",
+        "judge_model": "openai/gpt-6-luna",
+        "max_steps": 8,
+        "dataset": "core"
+      },
+      "summary": {
+        "total_cases": 22,
+        "scored_cases": 22,
+        "unscored_cases": 0,
+        "score_0_100": 93.45,
+        "partial_mean_0_100": null
+      }
+    },
+    "eval_after.json": {
+      "sha256": "beff98a7a537c426e99c87e8a175612dfd6f28ebf0950343b43e125255092fbe",
+      "config": {
+        "provider": "openrouter",
+        "model": "openai/gpt-6-luna",
+        "judge_provider": "openrouter",
+        "judge_model": "openai/gpt-6-luna",
+        "max_steps": 8,
+        "dataset": "core"
+      },
+      "summary": {
+        "total_cases": 22,
+        "scored_cases": 22,
+        "unscored_cases": 0,
+        "score_0_100": 98.14,
+        "partial_mean_0_100": null
+      }
+    },
+    "eval_bonus.json": {
+      "sha256": "45547e8769245e342ab5ba74c34c7d46c31bb868e1c9f30031b06ba44ef708f8",
+      "config": {
+        "provider": "openrouter",
+        "model": "openai/gpt-6-luna",
+        "judge_provider": "openrouter",
+        "judge_model": "openai/gpt-6-luna",
+        "max_steps": 16,
+        "dataset": "bonus"
+      },
+      "summary": {
+        "total_cases": 10,
+        "scored_cases": 10,
+        "unscored_cases": 0,
+        "score_0_100": 97.6,
+        "partial_mean_0_100": null,
+        "bonus_points_0_15": 14.64
+      }
+    }
+  }
+}

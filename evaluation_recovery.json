@@ -1,0 +1,14 @@
+{
+  "file": "eval_after.json",
+  "rerun_only_unscored": [
+    "A8"
+  ],
+  "config": {
+    "provider": "openrouter",
+    "model": "openai/gpt-6-luna",
+    "judge_provider": "openrouter",
+    "judge_model": "openai/gpt-6-luna",
+    "max_steps": 8,
+    "dataset": "core"
+  }
+}
